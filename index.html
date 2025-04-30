@@ -1,110 +1,155 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API ROI Calculator</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Projects API ROI Calculator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9fafb;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      background: white;
+    }
+    h2 {
+      text-align: center;
+      color: #1f2937;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+      color: #374151;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    .output {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f3f4f6;
+      border-left: 4px solid #3b82f6;
+      border-radius: 6px;
+      color: #111827;
+    }
+    .output strong {
+      font-size: 16px;
+      display: block;
+      margin-bottom: 10px;
+      color: #1d4ed8;
+    }
+    .roi {
+      margin-top: 25px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .roi.positive {
+      color: green;
+    }
+    .roi.negative {
+      color: red;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 font-sans p-6">
-  <div class="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-6">
-    <h1 class="text-2xl font-bold mb-4">API ROI Calculator</h1>
+<body>
+  <h2>Projects API ROI Calculator</h2>
 
-    <!-- Inputs -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <label class="block font-semibold">Tier</label>
-        <select id="tier" class="w-full p-2 border rounded">
-          <option value="Explorer">Explorer</option>
-          <option value="Growth">Growth</option>
-          <option value="Professional">Professional</option>
-        </select>
-      </div>
-      <div>
-        <label class="block font-semibold">Win Rate (%)</label>
-        <input id="winRate" type="number" value="0.5" step="0.1" class="w-full p-2 border rounded" />
-      </div>
-      <div>
-        <label class="block font-semibold">Average Deal Value ($)</label>
-        <input id="dealValue" type="number" value="10000" step="100" class="w-full p-2 border rounded" />
-      </div>
-      <div>
-        <label class="block font-semibold">Outreach Success Rate (%)</label>
-        <input id="outreachRate" type="number" value="100" step="1" class="w-full p-2 border rounded" />
-      </div>
-    </div>
+  <!-- Tier Selector -->
+  <label for="tier">Select Tier:</label>
+  <select id="tier">
+    <option value="explorer">Explorer (1,500 records/month)</option>
+    <option value="growth">Growth (3,000 records/month)</option>
+    <option value="professional">Professional (30,000 records/month)</option>
+  </select>
 
-    <button onclick="calculateROI()" class="mt-6 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Calculate</button>
+  <!-- Win Rate Input -->
+  <label for="winRate">Win Rate (%):</label>
+  <input type="number" id="winRate" placeholder="e.g. 2.5" step="0.1" />
 
-    <!-- Results -->
-    <div id="results" class="mt-6 hidden">
-      <h2 class="text-xl font-semibold mb-2">Results</h2>
-      <p><strong>Reachable Leads/Month:</strong> <span id="leads"></span></p>
-      <p><strong>Deals Closed/Month:</strong> <span id="deals"></span></p>
-      <p><strong>Monthly Revenue:</strong> $<span id="monthlyRev"></span></p>
-      <p><strong>Annual Revenue:</strong> $<span id="annualRev"></span></p>
-    </div>
+  <!-- Deal Size Input -->
+  <label for="dealSize">Average Deal Size ($):</label>
+  <input type="number" id="dealSize" placeholder="e.g. 10000" step="100" />
 
-    <!-- Chart -->
-    <canvas id="roiChart" class="mt-8 hidden"></canvas>
-  </div>
+  <!-- Output Section -->
+  <div class="output" id="results"></div>
 
   <script>
-    const tiers = {
-      Explorer: { requests: 5, pageSize: 10, price: 500 },
-      Growth: { requests: 10, pageSize: 10, price: 1000 },
-      Professional: { requests: 100, pageSize: 30, price: 5000 },
+    const tierConfig = {
+      explorer: {
+        pageSize: 10,
+        dailyLimit: 5,
+        monthlyRecords: 1500,
+        annualCost: 750 * 12
+      },
+      growth: {
+        pageSize: 10,
+        dailyLimit: 10,
+        monthlyRecords: 3000,
+        annualCost: 1500 * 12
+      },
+      professional: {
+        pageSize: 20,
+        dailyLimit: 50,
+        monthlyRecords: 30000,
+        annualCost: 3000 * 12
+      }
     };
 
-    let chart;
+    const tierSelect = document.getElementById('tier');
+    const winRateInput = document.getElementById('winRate');
+    const dealSizeInput = document.getElementById('dealSize');
+    const resultsDiv = document.getElementById('results');
 
     function calculateROI() {
-      const tier = document.getElementById('tier').value;
-      const winRate = parseFloat(document.getElementById('winRate').value) / 100;
-      const dealValue = parseFloat(document.getElementById('dealValue').value);
-      const outreachRate = parseFloat(document.getElementById('outreachRate').value) / 100;
+      const selectedTier = tierSelect.value;
+      const config = tierConfig[selectedTier];
 
-      const config = tiers[tier];
-      const leads = config.requests * 30 * config.pageSize;
-      const contacted = leads * outreachRate;
-      const deals = contacted * winRate;
-      const monthlyRevenue = deals * dealValue;
+      const winRate = parseFloat(winRateInput.value);
+      const dealSize = parseFloat(dealSizeInput.value);
+
+      if (isNaN(winRate) || isNaN(dealSize) || winRate < 0 || dealSize <= 0) {
+        resultsDiv.innerHTML = '';
+        return;
+      }
+
+      const winRateDecimal = winRate / 100;
+      const records = config.monthlyRecords;
+      const dealsWonMonthly = records * winRateDecimal;
+      const dealsWonAnnually = dealsWonMonthly * 12;
+      const monthlyRevenue = dealsWonMonthly * dealSize;
       const annualRevenue = monthlyRevenue * 12;
-      const roi = ((annualRevenue - config.price) / config.price) * 100;
 
-      document.getElementById('results').classList.remove('hidden');
-      document.getElementById('leads').innerText = leads.toFixed(0);
-      document.getElementById('deals').innerText = deals.toFixed(2);
-      document.getElementById('monthlyRev').innerText = monthlyRevenue.toLocaleString();
-      document.getElementById('annualRev').innerText = annualRevenue.toLocaleString();
+      const annualCost = config.annualCost;
+      const roiPercent = ((annualRevenue - annualCost) / annualCost) * 100;
+      const roiClass = roiPercent >= 0 ? 'positive' : 'negative';
+      const roiRounded = Math.round(roiPercent).toLocaleString();
 
-      const ctx = document.getElementById('roiChart').getContext('2d');
-      document.getElementById('roiChart').classList.remove('hidden');
-
-      if (chart) chart.destroy();
-
-      chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Annual Revenue', 'Annual Cost'],
-          datasets: [{
-            label: 'Amount ($)',
-            data: [annualRevenue, config.price],
-            backgroundColor: ['#4ade80', '#60a5fa']
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      });
+      resultsDiv.innerHTML = `
+        <strong>Results</strong>
+        Qualified Projects: ${records.toLocaleString()}<br>
+        Deals Won (monthly): ${dealsWonMonthly.toFixed(0)}<br>
+        Deals Won (annually): ${dealsWonAnnually.toFixed(0)}<br>
+        Estimated Monthly Revenue: $${Math.round(monthlyRevenue).toLocaleString()}<br>
+        Estimated Annual Revenue: $${Math.round(annualRevenue).toLocaleString()}<br>
+        Annual Subscription Cost: $${annualCost.toLocaleString()}<br>
+        <div class="roi ${roiClass}">Annual ROI: ${roiRounded}%</div>
+      `;
     }
+
+    tierSelect.addEventListener('change', calculateROI);
+    winRateInput.addEventListener('input', calculateROI);
+    dealSizeInput.addEventListener('input', calculateROI);
   </script>
 </body>
 </html>
