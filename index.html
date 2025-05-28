@@ -72,9 +72,9 @@
   <!-- Tier Selector -->
   <label for="tier">Select Tier:</label>
   <select id="tier">
-    <option value="explorer">Explorer (1,500 records/month)</option>
-    <option value="growth">Growth (3,000 records/month)</option>
-    <option value="professional">Professional (30,000 records/month)</option>
+    <option value="explorer">Explorer (300 records/month)</option>
+    <option value="growth">Growth (1,500 records/month)</option>
+    <option value="professional">Professional (4,500 records/month)</option>
   </select>
 
   <!-- Win Rate Input -->
@@ -93,20 +93,20 @@
       explorer: {
         pageSize: 10,
         dailyLimit: 5,
-        monthlyRecords: 1500,
+        monthlyRecords: 300,
         annualCost: 750 * 12
       },
       growth: {
         pageSize: 10,
         dailyLimit: 10,
-        monthlyRecords: 3000,
-        annualCost: 1500 * 12
+        monthlyRecords: 1500,
+        annualCost: 2500 * 12
       },
       professional: {
         pageSize: 20,
         dailyLimit: 50,
-        monthlyRecords: 30000,
-        annualCost: 3000 * 12
+        monthlyRecords: 4500,
+        annualCost: 4500 * 12
       }
     };
 
