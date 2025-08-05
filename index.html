@@ -6,107 +6,135 @@
   <title>Projects API ROI Calculator</title>
   <style>
     html, body {
-      background-color: #242E34;
+      background-color: #f1f5f9;
       margin: 0;
       padding: 0;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 640px;
+      margin: 50px auto;
+      padding: 32px;
+      border-radius: 12px;
       background: white;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
     }
+
     h2 {
       text-align: center;
-      color: #1f2937;
-      margin-bottom: 20px;
+      color: #1e293b;
+      margin-bottom: 30px;
+      font-size: 26px;
     }
+
     label {
       display: block;
-      margin-top: 15px;
+      margin-top: 20px;
       font-weight: 600;
-      color: #374151;
+      color: #334155;
+      font-size: 14px;
     }
+
     input, select {
       width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-size: 14px;
+      padding: 12px;
+      margin-top: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border 0.2s ease;
       box-sizing: border-box;
     }
-    .output {
-      margin-top: 30px;
-      padding: 20px;
-      background: #f3f4f6;
-      border-left: 4px solid #3b82f6;
-      border-radius: 6px;
-      color: #111827;
+
+    input:focus, select:focus {
+      border-color: #3b82f6;
+      outline: none;
     }
+
+    .output {
+      margin-top: 40px;
+      padding: 24px;
+      background: #f8fafc;
+      border-left: 5px solid #3b82f6;
+      border-radius: 8px;
+      color: #1e293b;
+    }
+
     .output strong {
-      font-size: 16px;
+      font-size: 18px;
       display: block;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
       color: #1d4ed8;
     }
+
     .roi {
-      margin-top: 25px;
-      font-size: 20px;
+      margin-top: 24px;
+      font-size: 22px;
       font-weight: bold;
     }
+
     .roi.positive {
-      color: green;
+      color: #16a34a;
     }
+
     .roi.negative {
-      color: red;
+      color: #dc2626;
+    }
+
+    .tier-info {
+      font-size: 14px;
+      margin-top: 8px;
+      color: #64748b;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 13px;
+      margin-top: 40px;
+      color: #64748b;
     }
   </style>
 </head>
 <body>
-  <h2>Projects API ROI Calculator</h2>
+  <h2>PlanHub API ROI Calculator</h2>
 
-  <!-- Tier Selector -->
   <label for="tier">Select Tier:</label>
   <select id="tier">
     <option value="explorer">Explorer (300 records/month)</option>
     <option value="growth">Growth (1,500 records/month)</option>
     <option value="professional">Professional (4,500 records/month)</option>
   </select>
+  <div class="tier-info" id="tierInfo"></div>
 
-  <!-- Win Rate Input -->
   <label for="winRate">Avg. Monthly Win Rate (%):</label>
   <input type="number" id="winRate" placeholder="e.g. 2.5" step="0.1" />
 
-  <!-- Deal Size Input -->
   <label for="dealSize">Avg. Deal Size ($):</label>
   <input type="number" id="dealSize" placeholder="e.g. 10000" step="100" />
 
-  <!-- Output Section -->
   <div class="output" id="results"></div>
+
+  <div class="footer-note">
+    * Relevance rate is based on average targeting efficiency by tier. ROI assumes full usage.
+  </div>
 
   <script>
     const tierConfig = {
       explorer: {
-        pageSize: 10,
-        dailyLimit: 5,
         monthlyRecords: 300,
-        annualCost: 750 * 12
+        annualCost: 600 * 12,
+        relevanceRate: 0.5
       },
       growth: {
-        pageSize: 10,
-        dailyLimit: 10,
         monthlyRecords: 1500,
-        annualCost: 3000 * 12
+        annualCost: 1500 * 12,
+        relevanceRate: 0.75
       },
       professional: {
-        pageSize: 20,
-        dailyLimit: 50,
         monthlyRecords: 4500,
-        annualCost: 4500 * 12
+        annualCost: 3825 * 12,
+        relevanceRate: 0.85
       }
     };
 
@@ -114,6 +142,11 @@
     const winRateInput = document.getElementById('winRate');
     const dealSizeInput = document.getElementById('dealSize');
     const resultsDiv = document.getElementById('results');
+    const tierInfoDiv = document.getElementById('tierInfo');
+
+    function formatPercent(decimal) {
+      return `${Math.round(decimal * 100)}%`;
+    }
 
     function calculateROI() {
       const selectedTier = tierSelect.value;
@@ -122,6 +155,8 @@
       const winRate = parseFloat(winRateInput.value);
       const dealSize = parseFloat(dealSizeInput.value);
 
+      tierInfoDiv.textContent = `Estimated qualified project rate for ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)} tier: ${formatPercent(config.relevanceRate)}`;
+
       if (isNaN(winRate) || isNaN(dealSize) || winRate < 0 || dealSize <= 0) {
         resultsDiv.innerHTML = '';
         return;
@@ -129,7 +164,8 @@
 
       const winRateDecimal = winRate / 100;
       const records = config.monthlyRecords;
-      const dealsWonMonthly = records * winRateDecimal;
+      const qualifiedRecords = records * config.relevanceRate;
+      const dealsWonMonthly = qualifiedRecords * winRateDecimal;
       const dealsWonAnnually = dealsWonMonthly * 12;
       const monthlyRevenue = dealsWonMonthly * dealSize;
       const annualRevenue = monthlyRevenue * 12;
@@ -140,13 +176,13 @@
       const roiRounded = Math.round(roiPercent).toLocaleString();
 
       resultsDiv.innerHTML = `
-        <strong>Results</strong>
-        Qualified Projects: ${records.toLocaleString()}<br>
-        Annual Subscription Cost: $${annualCost.toLocaleString()}<br>
-        Deals Won (monthly): ${dealsWonMonthly.toFixed(0)}<br>
-        Estimated Monthly Revenue: $${Math.round(monthlyRevenue).toLocaleString()}<br>
-        Deals Won (annually): ${dealsWonAnnually.toFixed(0)}<br>
-        Estimated Annual Revenue: $${Math.round(annualRevenue).toLocaleString()}<br>
+        <strong>Estimated Results</strong>
+        <div>Total Records / Mo: <strong>${records.toLocaleString()}</strong></div>
+        <div>Qualified Projects / Mo: <strong>${Math.round(qualifiedRecords).toLocaleString()}</strong></div>
+        <div>Deals Won / Mo: <strong>${dealsWonMonthly.toFixed(0)}</strong></div>
+        <div>Est. Monthly Revenue: <strong>$${Math.round(monthlyRevenue).toLocaleString()}</strong></div>
+        <div>Est. Annual Revenue: <strong>$${Math.round(annualRevenue).toLocaleString()}</strong></div>
+        <div>Annual Subscription Cost: <strong>$${annualCost.toLocaleString()}</strong></div>
         <div class="roi ${roiClass}">Annual ROI: ${roiRounded}%</div>
       `;
     }
